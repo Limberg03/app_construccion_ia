@@ -1,0 +1,20 @@
+# Ignore Python virtual environment
+venv/
+
+# Ignore Python/Django intermediates, secrets, and caches
+*.pyc
+__pycache__/
+db.sqlite3
+.env
+
+# Ignore node_modules from React frontend
+frontend/node_modules/
+
+# Ignore Vite/React build and logs
+frontend/dist/
+frontend/.env
+
+# VSCode and OS files (opcional, pero recomendado)
+.vscode/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,480 @@
+/* ═══════════════════════════════════════════════════════════════
+   Sistema de Temas para el Editor de Planos
+   Usa CSS Variables para colores consistentes
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Tema Claro - Estilo Arquitectónico Profesional */
+:root,
+[data-theme="light"] {
+  /* Canvas */
+  --canvas-bg: #ffffff;
+  --canvas-grid: #e8e8e8;
+  --canvas-grid-major: #d0d0d0;
+
+  /* Elementos */
+  --muro-color: #1a1a1a;
+  --muro-fill: #2d2d2d;
+  --puerta-color: #8b5a2b;
+  --puerta-fill: #d4a574;
+  --ventana-color: #4a90d9;
+  --ventana-fill: #a8cce8;
+
+  /* Selección */
+  --selection-stroke: #0066ff;
+  --selection-fill: rgba(0, 102, 255, 0.1);
+  --selection-handle: #0066ff;
+
+  /* Cotas */
+  --cota-line: #666666;
+  --cota-text: #333333;
+  --cota-bg: #ffffff;
+
+  /* Etiquetas */
+  --etiqueta-text: #333333;
+  --etiqueta-bg: rgba(255, 255, 255, 0.9);
+
+  /* UI Principal */
+  --ui-bg: #f5f5f5;
+  --ui-bg-elevated: #ffffff;
+  --ui-border: #d0d0d0;
+  --ui-text: #1a1a1a;
+  --ui-text-muted: #666666;
+  --ui-hover: #e8e8e8;
+  --ui-active: #d0d0d0;
+
+  /* Panel Lateral */
+  --panel-bg: #f8f8f8;
+  --panel-border: #e0e0e0;
+
+  /* Toolbar */
+  --toolbar-bg: #f0f0f0;
+  --toolbar-button: transparent;
+  --toolbar-button-hover: rgba(0, 0, 0, 0.05);
+  --toolbar-button-active: rgba(0, 102, 255, 0.15);
+  --toolbar-button-active-border: #0066ff;
+  --toolbar-button-active-text: #0066ff;
+
+  /* Inputs */
+  --input-bg: #ffffff;
+  --input-border: #cccccc;
+  --input-focus: #0066ff;
+  --input-text: #1a1a1a;
+
+  /* Accent */
+  --accent: #0066ff;
+  --accent-hover: #0052cc;
+  --accent-light: rgba(0, 102, 255, 0.1);
+
+  /* Sombra */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Tema Oscuro - Estilo CAD Profesional */
+[data-theme="dark"] {
+  /* Canvas */
+  --canvas-bg: #1a1a2e;
+  --canvas-grid: #2a2a4e;
+  --canvas-grid-major: #3a3a5e;
+
+  /* Elementos */
+  --muro-color: #e0e0e0;
+  --muro-fill: #b0b0b0;
+  --puerta-color: #d4a574;
+  --puerta-fill: #8b5a2b;
+  --ventana-color: #6ab0f0;
+  --ventana-fill: #3a7ab0;
+
+  /* Selección */
+  --selection-stroke: #4d9fff;
+  --selection-fill: rgba(77, 159, 255, 0.2);
+  --selection-handle: #4d9fff;
+
+  /* Cotas */
+  --cota-line: #a0a0a0;
+  --cota-text: #d0d0d0;
+  --cota-bg: #252540;
+
+  /* Etiquetas */
+  --etiqueta-text: #d0d0d0;
+  --etiqueta-bg: rgba(26, 26, 46, 0.9);
+
+  /* UI Principal */
+  --ui-bg: #252540;
+  --ui-bg-elevated: #1a1a2e;
+  --ui-border: #3a3a5e;
+  --ui-text: #e0e0e0;
+  --ui-text-muted: #a0a0a0;
+  --ui-hover: #2a2a4e;
+  --ui-active: #3a3a5e;
+
+  /* Panel Lateral */
+  --panel-bg: #1e1e35;
+  --panel-border: #2a2a4e;
+
+  /* Toolbar */
+  --toolbar-bg: #252540;
+  --toolbar-button: transparent;
+  --toolbar-button-hover: rgba(255, 255, 255, 0.05);
+  --toolbar-button-active: rgba(77, 159, 255, 0.2);
+  --toolbar-button-active-border: #4d9fff;
+  --toolbar-button-active-text: #4d9fff;
+
+  /* Inputs */
+  --input-bg: #1a1a2e;
+  --input-border: #3a3a5e;
+  --input-focus: #4d9fff;
+  --input-text: #e0e0e0;
+
+  /* Accent */
+  --accent: #4d9fff;
+  --accent-hover: #6db0ff;
+  --accent-light: rgba(77, 159, 255, 0.2);
+
+  /* Sombra */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Aplicación de estilos base
+   ═══════════════════════════════════════════════════════════════ */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--canvas-bg);
+  color: var(--ui-text);
+  transition: background 0.2s, color 0.2s;
+}
+
+/* Canvas principal */
+.editor-canvas {
+  width: 100%;
+  height: 100vh;
+  background: var(--canvas-bg);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Toolbar superior
+   ═══════════════════════════════════════════════════════════════ */
+
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: var(--toolbar-bg);
+  border-bottom: 1px solid var(--ui-border);
+  flex-shrink: 0;
+}
+
+.editor-toolbar__group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 8px;
+  border-right: 1px solid var(--ui-border);
+}
+
+.editor-toolbar__group:last-child {
+  border-right: none;
+}
+
+.editor-toolbar__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 6px;
+  background: var(--toolbar-button);
+  color: var(--ui-text);
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+
+.editor-toolbar__btn:hover {
+  background: var(--toolbar-button-hover);
+}
+
+.editor-toolbar__btn--active {
+  background: var(--toolbar-button-active);
+  color: var(--toolbar-button-active-text);
+}
+
+.editor-toolbar__btn--active::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 2px;
+  background: var(--toolbar-button-active-border);
+  border-radius: 1px;
+}
+
+.editor-toolbar__btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.editor-toolbar__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ui-text);
+  margin-right: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Área de trabajo
+   ═══════════════════════════════════════════════════════════════ */
+
+.editor-workspace {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.editor-canvas-area {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  cursor: crosshair;
+}
+
+.editor-canvas-area--grab {
+  cursor: grab;
+}
+
+.editor-canvas-area--grabbing {
+  cursor: grabbing;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Panel lateral
+   ═══════════════════════════════════════════════════════════════ */
+
+.editor-sidebar {
+  width: 280px;
+  background: var(--panel-bg);
+  border-left: 1px solid var(--panel-border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.editor-sidebar__section {
+  padding: 16px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.editor-sidebar__title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--ui-text-muted);
+  margin-bottom: 12px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Formularios
+   ═══════════════════════════════════════════════════════════════ */
+
+.editor-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--input-text);
+  font-size: 13px;
+  transition: border-color 0.15s;
+}
+
+.editor-input:focus {
+  outline: none;
+  border-color: var(--input-focus);
+}
+
+.editor-input--sm {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.editor-input__group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.editor-input__group .editor-input {
+  flex: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Canvas SVG Elements
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Muro */
+.muro {
+  fill: var(--muro-fill);
+  stroke: var(--muro-color);
+  stroke-width: 1;
+}
+
+/* Puerta */
+.puerta {
+  fill: var(--puerta-fill);
+  stroke: var(--puerta-color);
+  stroke-width: 1.5;
+}
+
+/* Ventana */
+.ventana {
+  fill: var(--ventana-fill);
+  stroke: var(--ventana-color);
+  stroke-width: 1.5;
+}
+
+/* Selección */
+.seleccion {
+  fill: var(--selection-fill);
+  stroke: var(--selection-stroke);
+  stroke-width: 2;
+  stroke-dasharray: 5 3;
+}
+
+.seleccion-handle {
+  fill: var(--selection-handle);
+}
+
+/* Grid */
+.grid-line {
+  stroke: var(--canvas-grid);
+  stroke-width: 0.5;
+}
+
+.grid-line--major {
+  stroke: var(--canvas-grid-major);
+  stroke-width: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Zoom controls
+   ═══════════════════════════════════════════════════════════════ */
+
+.zoom-controls {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  gap: 4px;
+  background: var(--ui-bg-elevated);
+  padding: 4px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--ui-border);
+}
+
+.zoom-controls__btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ui-text);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.zoom-controls__btn:hover {
+  background: var(--ui-hover);
+}
+
+.zoom-controls__value {
+  min-width: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ui-text);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Tooltips
+   ══════════════════════════════════════���════════════════════════ */
+
+.tooltip {
+  position: relative;
+}
+
+.tooltip__content {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  background: var(--ui-text);
+  color: var(--ui-bg);
+  font-size: 12px;
+  white-space: nowrap;
+  border-radius: 4px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s, visibility 0.15s;
+  margin-bottom: 6px;
+  z-index: 100;
+}
+
+.tooltip:hover .tooltip__content {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Status bar
+   ═══════════════════════════════════════════════════════════════ */
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 6px 12px;
+  background: var(--toolbar-bg);
+  border-top: 1px solid var(--ui-border);
+  font-size: 11px;
+  color: var(--ui-text-muted);
+}
+
+.status-bar__item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-bar__label {
+  color: var(--ui-text-muted);
+}
+
+.status-bar__value {
+  color: var(--ui-text);
+  font-weight: 500;
+}
