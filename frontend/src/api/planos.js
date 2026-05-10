@@ -56,9 +56,10 @@ export async function procesarPlanoIA(planoId, payload) {
  * Solo acepta el archivo; el prompt estático lo define el backend.
  * Endpoint dedicado: POST /api/planos/{id}/analizar-imagen/
  */
-export async function analizarImagenPlano(planoId, file) {
+export async function analizarImagenPlano(planoId, file, provider = 'openai') {
   const form = new FormData()
   form.append('file', file)
+  form.append('provider', provider)
 
   const res = await http.post(`${BASE}${planoId}/analizar-imagen/`, form, {
     headers: { 'Content-Type': 'multipart/form-data' },
@@ -69,5 +70,10 @@ export async function analizarImagenPlano(planoId, file) {
 
 export async function chatbotPlano(planoId, payload) {
   const res = await http.post(`${BASE}${planoId}/chatbot/`, payload)
+  return res.data
+}
+
+export async function generarAlternativas(planoId, opciones) {
+  const res = await http.post(`${BASE}${planoId}/generar-alternativas/`, { opciones })
   return res.data
 }

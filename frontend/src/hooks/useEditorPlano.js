@@ -173,13 +173,13 @@ export function useEditorPlano(proyectoId) {
    * Llama directamente al endpoint dedicado /analizar-imagen/.
    */
   const analizarImagenIA = useCallback(
-    async (file) => {
+    async (file, provider = 'openai') => {
       if (!planoData?.id) return null
       if (!file) return null
       setError('')
       setIsProcessingIA(true)
       try {
-        const response = await analizarImagenPlano(planoData.id, file)
+        const response = await analizarImagenPlano(planoData.id, file, provider)
         const json = Array.isArray(response)
           ? response
           : (Array.isArray(response?.vector_data) ? response.vector_data : [])

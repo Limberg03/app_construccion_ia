@@ -27,6 +27,7 @@ export function SubidaPlanoIA({ isProcessing, onUpload, error }) {
   const [file, setFile] = useState(null)
 
   const [modo, setModo] = useState('image')
+  const [provider, setProvider] = useState('openai')
   const [prompt, setPrompt] = useState('')
   const [estilo, setEstilo] = useState('contemporaneo')
   const [areaM2, setAreaM2] = useState('140')
@@ -89,7 +90,7 @@ export function SubidaPlanoIA({ isProcessing, onUpload, error }) {
   const handleGenerar = () => {
     if (isProcessing) return
 
-    const payload = { modo }
+    const payload = { modo, provider }
     if (!soloImagen) {
       payload.prompt = prompt.trim()
       payload.opciones = opciones
@@ -142,21 +143,34 @@ export function SubidaPlanoIA({ isProcessing, onUpload, error }) {
         }
       >
         <div className="grid grid-cols-1 gap-4">
-          <div>
-            <label className="mb-1 block text-xs uppercase tracking-wide text-slate-300">Modo</label>
-            <select
-              value={modo}
-              onChange={(e) => {
-                const next = e.target.value
-                setModo(next)
-                if (next === 'text') setFile(null)
-              }}
-              className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100"
-            >
-              <option value="image">Solo imagen</option>
-              <option value="hybrid">Hibrido (imagen + indicaciones)</option>
-              <option value="text">Solo indicaciones</option>
-            </select>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1 block text-xs uppercase tracking-wide text-slate-300">Modo</label>
+              <select
+                value={modo}
+                onChange={(e) => {
+                  const next = e.target.value
+                  setModo(next)
+                  if (next === 'text') setFile(null)
+                }}
+                className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+              >
+                <option value="image">Solo imagen</option>
+                <option value="hybrid">Hibrido (imagen + indicaciones)</option>
+                <option value="text">Solo indicaciones</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs uppercase tracking-wide text-slate-300">IA Provider</label>
+              <select
+                value={provider}
+                onChange={(e) => setProvider(e.target.value)}
+                className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+              >
+                <option value="openai">OpenAI</option>
+                <option value="gemini">Gemini 2.5 Flash</option>
+              </select>
+            </div>
           </div>
 
           {(soloIndicaciones || hibrido) ? (

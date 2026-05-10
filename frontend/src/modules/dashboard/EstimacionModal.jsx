@@ -11,6 +11,7 @@ import { http } from '../../api/config'
 import { createPresupuesto, getPresupuestosByProyecto, generarPresupuestoAutomatico, getPresupuestoItems } from '../../api/presupuestos'
 import { Button } from '../../ui/Button'
 import { Modal } from '../../ui/Modal'
+import { AlternativasModal } from './AlternativasModal'
 
 const MODOS = [
   { value: 'rapido',   label: 'Rápido' },
@@ -108,8 +109,10 @@ function ItemsTable({ items }) {
                 key={item.id ?? idx}
                 className="border-b border-white/6 last:border-0 hover:bg-white/4"
               >
-                <td className="px-3 py-2 text-slate-300">{item.material_nombre ?? item.material ?? '—'}</td>
-                <td className="px-3 py-2 text-right text-slate-300">{item.cantidad ?? '—'}</td>
+                <td className="px-3 py-2 text-slate-300 capitalize">{item.material_nombre ?? item.material ?? '—'}</td>
+                <td className="px-3 py-2 text-right text-slate-300">
+                  {item.cantidad ?? '—'} <span className="text-xs text-slate-500 ml-1">{item.material_unidad ?? ''}</span>
+                </td>
                 <td className="px-3 py-2 text-right text-slate-300">{formatMoney(item.precio_unitario)}</td>
                 <td className="px-3 py-2 text-right font-medium text-sky-400">{formatMoney(item.subtotal)}</td>
               </tr>
@@ -136,6 +139,9 @@ export function EstimacionModal({ open, onClose, proyecto }) {
   const [items, setItems] = useState([])
   const [resumen, setResumen] = useState(null)
   const [generado, setGenerado] = useState(false)
+
+  const [showAlternativas, setShowAlternativas] = useState(false)
+  const [showWarning, setShowWarning] = useState(false)
 
   const handleExportarPDF = async () => {
     if (!presupuesto) return
@@ -278,17 +284,31 @@ export function EstimacionModal({ open, onClose, proyecto }) {
 
   const totalEstimado = totalDesdeItems || totalDesdeResumen || presupuesto?.total || 0
 
+  const primerPlano = planos.length > 0 ? planos[0] : null
+
   return (
+    <>
     <Modal
       open={open}
       title="Estimación de Presupuesto"
       onClose={onClose}
       maxWidthClass="max-w-3xl"
       footer={
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          {/* Info del modo */}
-          <p className="text-xs text-slate-400 max-w-sm">{INFO_MODO[modo]}</p>
-          <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 w-full">
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="secondary" 
+              className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 hover:bg-indigo-500/20 font-semibold"
+              onClick={() => {
+                if (!generado) setShowWarning(true)
+                else setShowAlternativas(true)
+              }}
+              disabled={planos.length === 0}
+            >
+              Generar Diseños Alternativos con IA
+            </Button>
+          </div>
+          <div className="flex gap-2 w-full sm:w-auto justify-end">
             {generado && (
               <Button variant="secondary" onClick={handleExportarPDF} className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20">
                 Descargar PDF
@@ -361,5 +381,45 @@ export function EstimacionModal({ open, onClose, proyecto }) {
         </div>
       )}
     </Modal>
+
+    {/* Modal de Advertencia (Validación) */}
+    <Modal
+      open={showWarning}
+      onClose={() => setShowWarning(false)}
+      title="⚠️ Primero debes generar la estimación"
+      maxWidthClass="max-w-md"
+      footer={
+        <div className="flex gap-2 justify-end">
+          <Button variant="secondary" onClick={() => setShowWarning(false)}>Cancelar</Button>
+          <Button onClick={() => {
+            setShowWarning(false)
+            handleGenerar()
+          }}>
+            Sí, generar estimación ahora
+          </Button>
+        </div>
+      }
+    >
+      <div className="text-sm text-slate-300">
+        Para crear diseños alternativos con IA es necesario tener los cálculos de materiales y costos actuales.
+        <br/><br/>
+        ¿Quieres generar la estimación de presupuesto ahora?
+      </div>
+    </Modal>
+
+    {/* Modal de Diseño Generativo */}
+    <AlternativasModal 
+      open={showAlternativas}
+      onClose={() => setShowAlternativas(false)}
+      planoOriginal={primerPlano}
+      costoActual={totalEstimado}
+      onAplicar={(alt) => {
+        setShowAlternativas(false)
+        onClose() 
+        // Redirige directamente al editor del proyecto donde se cargará el nuevo plano (al ser el más reciente)
+        window.location.href = `/proyecto/${proyecto?.id || alt.proyecto}/editor`
+      }}
+    />
+    </>
   )
 }

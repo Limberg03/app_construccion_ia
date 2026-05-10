@@ -156,7 +156,7 @@ export function EditorPage() {
               let response
               // Punto 1: modo image → endpoint dedicado sin prompt del usuario
               if (payload.modo === 'image' && payload.file) {
-                response = await analizarImagenIA(payload.file)
+                response = await analizarImagenIA(payload.file, payload.provider)
               } else {
                 // text / hybrid → endpoint genérico con prompt y opciones
                 response = await procesarIA(payload)

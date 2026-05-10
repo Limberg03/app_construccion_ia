@@ -312,14 +312,24 @@ class PlanoViewSet(viewsets.ModelViewSet):
                 img.thumbnail((3072, 3072))
 
             # Llama a la función dedicada del Punto 1 (prompt estático, sin usuario)
-            # El usuario ha solicitado forzar el uso de OpenAI para esto.
-            from .services.openai_service import procesar_plano_con_openai
-            result = procesar_plano_con_openai(
-                image_pil=img,
-                prompt_usuario="",
-                opciones={},
-                modo="image"
-            )
+            provider = str(request.data.get("provider", "openai")).lower()
+            
+            if provider == "gemini":
+                from .services.gemini_service import procesar_plano_con_gemini
+                result = procesar_plano_con_gemini(
+                    image_pil=img,
+                    prompt_usuario="",
+                    opciones={},
+                    modo="image"
+                )
+            else:
+                from .services.openai_service import procesar_plano_con_openai
+                result = procesar_plano_con_openai(
+                    image_pil=img,
+                    prompt_usuario="",
+                    opciones={},
+                    modo="image"
+                )
 
             from .services.vector_postprocess import postprocess_vector_data
             processed, _stats = postprocess_vector_data(result.vector_data)
@@ -366,6 +376,26 @@ class PlanoViewSet(viewsets.ModelViewSet):
                 {"detail": "Error inesperado procesando la imagen."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+    @action(detail=True, methods=["post"], url_path="generar-alternativas")
+    def generar_alternativas(self, request, pk=None):
+        plano = self.get_object()
+        
+        # Validar que exista el presupuesto, pero el frontend ya lo validó.
+        # Aquí tomamos los parámetros del modal ligero.
+        opciones = request.data.get("opciones", {})
+        
+        from .services.generative_design import generar_diseños_alternativos
+        try:
+            alternativas = generar_diseños_alternativos(plano, opciones)
+            
+            # Serializar las alternativas creadas
+            serializer = self.get_serializer(alternativas, many=True)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            logger.exception("Error generando alternativas")
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class AmbienteViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]

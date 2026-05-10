@@ -16,6 +16,12 @@ class PlanoSerializer(serializers.ModelSerializer):
             "prompt_usuario",
             "opciones_generacion",
             "escala_metros_por_pixel",
+            "es_alternativa",
+            "plano_original",
+            "costo_estimado",
+            "tiempo_estimado_dias",
+            "co2_estimado",
+            "puntuacion_sostenibilidad",
             "creado_en",
             "actualizado_en",
         ]

@@ -177,11 +177,53 @@ def _factor_refinado(presupuesto: Presupuesto) -> Decimal:
     return min(Decimal("1.35"), factor).quantize(Decimal("0.01"))
 
 
+def _actualizar_precios_con_gemini(nombres_materiales: list[str]):
+    try:
+        from django.conf import settings
+        import google.generativeai as genai
+        import json
+        api_key = str(getattr(settings, "GEMINI_API_KEY", "") or "").strip()
+        if not api_key:
+            return
+            
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        prompt = f"""
+        Eres un experto contratista en Bolivia.
+        Dame los precios de mercado actuales (en Bolivianos - BOB) para estos materiales de construcción: {nombres_materiales}.
+        Usa las siguientes referencias de unidades estándar en Bolivia:
+        - Cemento: precio por BOLSA de 50kg (aprox 50-60 Bs)
+        - Ladrillo (6 huecos): precio por UNIDAD (aprox 1.20-1.50 Bs)
+        - Arena: precio por M3 (metro cúbico) (aprox 100-150 Bs)
+        - Puerta: precio promedio por UNIDAD económica (aprox 250-500 Bs)
+        - Ventana: precio promedio por UNIDAD económica (aprox 200-400 Bs)
+        - Hierro/Acero: precio por KG (aprox 7-10 Bs)
+        - Pintura: precio por LITRO (aprox 15-25 Bs)
+        
+        Devuelve ÚNICAMENTE un JSON válido con el formato: {{"nombre_material": precio_numerico}}.
+        Ejemplo: {{"cemento": 55.50, "ladrillo": 1.30}}
+        """
+        res = model.generate_content(prompt)
+        text = res.text.strip()
+        if text.startswith("```json"): text = text[7:]
+        if text.startswith("```"): text = text[3:]
+        if text.endswith("```"): text = text[:-3]
+        
+        precios_ia = json.loads(text.strip())
+        
+        for nombre, precio in precios_ia.items():
+            mat = _obtener_material(nombre, "")
+            if mat:
+                mat.precio_referencial = Decimal(str(precio)).quantize(Decimal("0.01"))
+                mat.save(update_fields=['precio_referencial'])
+    except Exception as e:
+        print(f"Error al obtener precios con IA: {e}")
+
 def _generar_items_desde_plano_ia(presupuesto: Presupuesto) -> int:
     """
     PUNTO 4: Genera los items del presupuesto calculando geométricamente
     las cantidades exactas a partir del plano generado por la IA (vector_data),
-    y llama al scraper para asegurar precios reales en Bs.
+    y llama a Gemini para asegurar precios reales en Bs.
     """
     ambiente = presupuesto.ambiente
     # Si no hay ambiente ligado, intentamos usar el primer plano del proyecto
@@ -212,16 +254,13 @@ def _generar_items_desde_plano_ia(presupuesto: Presupuesto) -> int:
     area_bruta_muros = Decimal("0")
 
     for muro in muros:
-        # La longitud del muro es el lado más largo (ancho o alto en el canvas)
         w = Decimal(str(muro.get("width") or 0))
         h = Decimal(str(muro.get("height") or 0))
         longitud_metros = max(w, h) * escala
         area_bruta_muros += longitud_metros * altura_muro
 
     # Restar aperturas (asumiendo tamaño promedio si no hay dimensiones 3D)
-    # Puerta estándar: 0.9m x 2.1m = ~1.89 m2
     area_puertas = Decimal(len(puertas)) * Decimal("1.89")
-    # Ventana promedio: 1.5m x 1.2m = ~1.8 m2
     area_ventanas = Decimal(len(ventanas)) * Decimal("1.8")
 
     area_neta_muros = area_bruta_muros - area_puertas - area_ventanas
@@ -233,7 +272,6 @@ def _generar_items_desde_plano_ia(presupuesto: Presupuesto) -> int:
     cant_cemento = (area_neta_muros * Decimal("0.35")).quantize(Decimal("0.1"))
     cant_arena = (area_neta_muros * Decimal("0.04")).quantize(Decimal("0.1"))
 
-    # Estructura a guardar (nombres genéricos para que el scraper los encuentre más fácil)
     requerimientos = [
         {"nombre": "ladrillo", "unidad": "unidad", "cantidad": cant_ladrillos},
         {"nombre": "cemento", "unidad": "bolsa", "cantidad": cant_cemento},
@@ -246,18 +284,9 @@ def _generar_items_desde_plano_ia(presupuesto: Presupuesto) -> int:
     if len(ventanas) > 0:
         requerimientos.append({"nombre": "ventana", "unidad": "unidad", "cantidad": Decimal(len(ventanas))})
 
-    # 4. Scraper (NO recomendado dentro de requests en producción)
+    # 4. Actualizar Precios con IA (Gemini)
     nombres_materiales = [req["nombre"] for req in requerimientos]
-    _scrape_en_request = os.getenv("SCRAPER_SYNC_IN_REQUEST", "").lower() in {"1", "true", "yes", "on"}
-    if _scrape_en_request:
-        try:
-            from materials.services.scraper_service import buscar_precios
-
-            # Busca y actualiza en BD si los precios son viejos.
-            # OJO: puede demorar; en producción es mejor hacerlo con un Cron Job.
-            buscar_precios(nombres_materiales, persistir=True, max_age_hours=168)
-        except Exception:
-            pass  # Si falla el scraper, usamos lo que haya en la base de datos
+    _actualizar_precios_con_gemini(nombres_materiales)
 
     creados = 0
     omitidos: list[dict[str, str]] = []
@@ -323,6 +352,10 @@ def generar_items_presupuesto(
         ajustes = AJUSTE_POR_AMBIENTE.get(tipo_ambiente, {})
 
         factor_refinado = Decimal("1.00")
+
+        # Actualizar Precios con IA (Gemini) antes de crear los items
+        nombres_para_rapido = [base["material"] for base in COEFICIENTES_BASE_M2]
+        _actualizar_precios_con_gemini(nombres_para_rapido)
 
         creados = 0
         omitidos: list[dict[str, str]] = []

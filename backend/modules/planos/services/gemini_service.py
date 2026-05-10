@@ -18,32 +18,36 @@ class GeminiServiceError(Exception):
 
 
 SYSTEM_PROMPT = (
-    "Eres un arquitecto/delineante experto. Analiza la imagen de un plano (2D) y extrae elementos vectoriales editables. "
-    "Devuelve ÚNICAMENTE un array JSON válido (sin markdown, sin texto adicional). "
-    "Sistema de coordenadas: origen (0,0) en la esquina superior izquierda de la imagen; x hacia la derecha; y hacia abajo. "
-    "Unidades: píxeles aproximados de la imagen enviada. "
-    "Elementos permitidos (tipo): muro, puerta, ventana, texto, cota, simbolo. "
-    "Prioridad de extracción: (1) muros perimetrales (perímetro exterior cerrado), (2) muros interiores principales, (3) puertas, (4) ventanas, (5) anotaciones (texto/cotas), (6) símbolos. "
-    "Representación: muros/puertas/ventanas como rectángulos (x,y,width,height). Evita rotation: usa rectángulos alineados a ejes (solo 0°). "
-    "Muros: deben ser segmentos largos con grosor uniforme (líneas gruesas). Evita fragmentar un mismo muro en muchos pedazos: prefiere menos muros más largos. "
-    "Regla CLAVE: NO uses tipo 'texto' para medidas. Todas las medidas (con unidades como m, cm, mm, pies/pulgadas o fracciones) deben ser tipo 'cota'. "
-    "texto: SOLO para etiquetas que NO sean medidas (ej: nombres de ambientes, notas, 'Sala', 'Cocina'). Si dudas, usa 'cota'. "
-    "texto: {id,tipo:'texto',x,y,texto,tamano_fuente?}. "
-    "cota: {id,tipo:'cota',x1,y1,x2,y2,valor} (valor en metros si se puede leer del plano, ej '3.20 m'). "
-    "simbolo: {id,tipo:'simbolo',x,y,nombre,categoria?,rotacion?,escala?} (nombre sugeridos: 'escalera'/'gradas', 'auto', 'cama', 'inodoro'). "
-    "Medidas: si el plano tiene cotas con texto (ej: '1.78m', '2.40 m', '27'-9.8\"', '2'-6\"'), genera un elemento 'cota' por cada una. "
-    "Para cada cota, ubica (x1,y1)-(x2,y2) EXACTAMENTE sobre la línea de cota (la línea fina con flechas/ticks), no sobre el muro. "
-    "Los endpoints (x1,y1) y (x2,y2) deben caer sobre los ticks/flechas y alinearse con las líneas de extensión que tocan la CARA del muro medido. "
-    "La cota debe ser paralela al muro que mide (horizontal o vertical). "
-    "No redondees agresivamente: conserva el texto tal cual aparece. "
-    "Reglas: (1) NO inventes elementos fuera del dibujo; (2) evita duplicados; (3) prioriza muros perimetrales y divisiones principales; "
-    "(4) si hay duda entre puerta/ventana, clasifica como 'puerta' solo si se aprecia abertura/arco; caso contrario 'ventana'; "
-    "(5) si no puedes leer una medida, omite esa cota en vez de inventarla. "
-    "Ejemplo mínimo válido: "
-    "[{\"id\":\"m1\",\"tipo\":\"muro\",\"x\":10,\"y\":20,\"width\":300,\"height\":15,\"rotation\":0},"
-    "{\"id\":\"p1\",\"tipo\":\"puerta\",\"x\":120,\"y\":35,\"width\":90,\"height\":15,\"rotation\":0},"
-    "{\"id\":\"t1\",\"tipo\":\"texto\",\"x\":60,\"y\":60,\"texto\":\"Cocina\",\"tamano_fuente\":16},"
-    "{\"id\":\"s1\",\"tipo\":\"simbolo\",\"x\":200,\"y\":120,\"nombre\":\"escalera\",\"categoria\":\"circulacion\",\"rotacion\":0,\"escala\":1}]."
+    "Eres un sistema experto en detección de planos arquitectónicos 2D. DEBES digitalizar esta imagen completa. "
+    "REGLA ABSOLUTA: Los MUROS (paredes) son lo más importante. Sin muros, la respuesta es inválida. "
+    "Trabaja con coordenadas en píxeles reales de la imagen (0 a ~600 ancho, 0 a ~500 alto). "
+    "Tipos permitidos: 'muro', 'puerta', 'ventana', 'texto', 'simbolo', 'cota'. "
+    "PROCESO OBLIGATORIO EN ORDEN:\n"
+    "[1] MUROS PERIMETRALES: Dibuja los 4 muros del borde exterior como rectángulos finos (height=8 para horizontales, width=8 para verticales). "
+    "[2] MUROS INTERIORES: Encuentra CADA línea que separa habitaciones. Son líneas paralelas dobles o simples. Añade un muro por cada división. "
+    "[3] PUERTAS: Busca arcos en los muros. Coloca una 'puerta' en cada hueco con arco. "
+    "[4] TEXTOS: Lee TODOS los nombres de espacios (SALA, CUARTO, BAÑO, COCINA, GARAJE, PASILLO, COMEDOR). "
+    "[5] SÍMBOLOS: Si ves escaleras, añade simbolo 'escalera'. "
+    "[6] COTAS: Solo al final, extrae medidas numéricas (ej: 5.00m, 3.10). "
+    "Formatos exactos (sin campos extra):\n"
+    "{\"id\":\"m1\",\"tipo\":\"muro\",\"x\":50,\"y\":50,\"width\":400,\"height\":8}\n"
+    "{\"id\":\"t1\",\"tipo\":\"texto\",\"x\":150,\"y\":200,\"texto\":\"SALA\",\"tamano_fuente\":14}\n"
+    "{\"id\":\"c1\",\"tipo\":\"cota\",\"x1\":50,\"y1\":30,\"x2\":450,\"y2\":30,\"valor\":\"5.00m\"}\n"
+    "DEVUELVE SOLO el array JSON. Si no puedes detectar muros, devuelve al menos el rectángulo perimetral."
+)
+
+PROMPT_SOLO_GEOMETRIA = (
+    "Analiza esta imagen arquitectónica y devuelve UN ARRAY JSON OBLIGATORIAMENTE.\n"
+    "Reglas críticas:\n"
+    "1. NO extraigas números rojos ni cotas.\n"
+    "2. EXTRAE MUROS (muro): Mapea TODAS las paredes interiores y exteriores como rectángulos finos.\n"
+    "3. EXTRAE PUERTAS (puerta): Cada espacio o arco en una pared es una puerta.\n"
+    "4. EXTRAE TEXTOS (texto): **ESTO ES LO MÁS IMPORTANTE**. Escribe CADA PALABRA que veas en las habitaciones (ej: SALA, COCINA, BAÑO, CUARTO, PASILLO). Si omites una palabra visible, tu respuesta es inútil.\n\n"
+    "Formatos (usar píxeles 0-800):\n"
+    "{\"id\":\"m1\",\"tipo\":\"muro\",\"x\":10,\"y\":10,\"width\":300,\"height\":10}\n"
+    "{\"id\":\"t1\",\"tipo\":\"texto\",\"x\":150,\"y\":200,\"texto\":\"SALA\",\"tamano_fuente\":20}\n"
+    "{\"id\":\"p1\",\"tipo\":\"puerta\",\"x\":100,\"y\":10,\"width\":40,\"height\":10}\n"
+    "Devuelve SOLO el array JSON cerrado en []."
 )
 
 
@@ -559,10 +563,21 @@ def _sanitize_vector_item(item: Any, idx: int) -> Dict[str, Any]:
         y1c = _pick_number(item, "y1", "inicio_y", "start_y")
         x2c = _pick_number(item, "x2", "fin_x", "end_x")
         y2c = _pick_number(item, "y2", "fin_y", "end_y")
+        
+        # Fallback tolerante si la IA solo envió x, y
         if None in (x1c, y1c, x2c, y2c):
-            raise GeminiServiceError(f"Elemento #{idx + 1}: cota requiere x1,y1,x2,y2 numéricos")
+            xb = _pick_number(item, "x", "left", "cx")
+            yb = _pick_number(item, "y", "top", "cy")
+            if xb is not None and yb is not None:
+                # Simulamos una pequeña línea horizontal centrada en x,y
+                x1c = xb - 20
+                y1c = yb
+                x2c = xb + 20
+                y2c = yb
+            else:
+                raise GeminiServiceError(f"Elemento #{idx + 1}: cota requiere x1,y1,x2,y2 numéricos o x,y")
 
-        valor = str(item.get("valor") or item.get("value") or "").strip()
+        valor = str(item.get("valor") or item.get("value") or item.get("texto") or "").strip()
         if not valor:
             # fallback: estimación por escala default (1m=100px)
             dx = float(x2c) - float(x1c)
@@ -673,15 +688,104 @@ def _sanitize_vector_item(item: Any, idx: int) -> Dict[str, Any]:
 def _validate_vector_data(data: Any, *, allow_empty: bool = False) -> List[Dict[str, Any]]:
     if not isinstance(data, list):
         raise GeminiServiceError("La IA no devolvió un array JSON")
-    if len(data) == 0 and not allow_empty:
-        raise GeminiServiceError(
-            "La IA no detectó geometría. Intenta con una imagen con mayor contraste."
-        )
-
+    
     sanitized: List[Dict[str, Any]] = []
     for idx, it in enumerate(data):
-        sanitized.append(_sanitize_vector_item(it, idx))
+        try:
+            sanitized.append(_sanitize_vector_item(it, idx))
+        except Exception as e:
+            # En lugar de fallar todo el plano, simplemente ignoramos el elemento malformado
+            import logging
+            logging.getLogger(__name__).warning(f"[GeminiService] Ignorando elemento malformado en índice {idx}: {e}")
+            continue
+
+    if len(sanitized) == 0 and not allow_empty:
+        raise GeminiServiceError(
+            "La IA no detectó geometría válida. Intenta con una imagen con mayor contraste."
+        )
+
     return sanitized
+
+
+def _normalize_vector_data(
+    items: List[Dict[str, Any]],
+    target_w: float = 800.0,
+    target_h: float = 600.0,
+    padding: float = 40.0,
+) -> List[Dict[str, Any]]:
+    """
+    Escala automáticamente los datos vectoriales de Gemini para que encajen
+    limpiamente en el canvas del editor (800x600) sin importar el sistema de
+    coordenadas que usó la IA. Preserva las proporciones del plano original.
+    """
+    # Calcular bounding box de todo el contenido
+    xs, ys = [], []
+    for s in items:
+        tipo = s.get("tipo", "")
+        if tipo in {"muro", "puerta", "ventana", "texto", "simbolo"}:
+            x = float(s.get("x") or 0)
+            y = float(s.get("y") or 0)
+            w = float(s.get("width") or 0)
+            h = float(s.get("height") or 0)
+            xs += [x, x + w]
+            ys += [y, y + h]
+        elif tipo == "cota":
+            xs += [float(s.get("x1") or 0), float(s.get("x2") or 0)]
+            ys += [float(s.get("y1") or 0), float(s.get("y2") or 0)]
+
+    if not xs or not ys:
+        return items
+
+    min_x, max_x = min(xs), max(xs)
+    min_y, max_y = min(ys), max(ys)
+    content_w = max_x - min_x
+    content_h = max_y - min_y
+
+    # Si el contenido ya está en un rango razonable (50-1200), no escalar
+    if 50 <= content_w <= 1200 and 50 <= content_h <= 1200:
+        return items
+
+    if content_w == 0 or content_h == 0:
+        return items
+
+    # Calcular escala uniforme manteniendo proporciones
+    available_w = target_w - padding * 2
+    available_h = target_h - padding * 2
+    scale = min(available_w / content_w, available_h / content_h)
+
+    def sx(v):
+        return round((float(v) - min_x) * scale + padding, 2)
+
+    def sy(v):
+        return round((float(v) - min_y) * scale + padding, 2)
+
+    def sw(v):
+        return round(float(v) * scale, 2)
+
+    normalized = []
+    for s in items:
+        s = dict(s)
+        tipo = s.get("tipo", "")
+        if tipo in {"muro", "puerta", "ventana", "simbolo"}:
+            s["x"] = sx(s.get("x", 0))
+            s["y"] = sy(s.get("y", 0))
+            if "width" in s:
+                s["width"] = sw(s["width"])
+            if "height" in s:
+                s["height"] = sw(s["height"])
+        elif tipo == "texto":
+            s["x"] = sx(s.get("x", 0))
+            s["y"] = sy(s.get("y", 0))
+            # Escalar también el tamaño de fuente
+            if "tamano_fuente" in s:
+                s["tamano_fuente"] = max(10, round(float(s["tamano_fuente"]) * scale))
+        elif tipo == "cota":
+            s["x1"] = sx(s.get("x1", 0))
+            s["y1"] = sy(s.get("y1", 0))
+            s["x2"] = sx(s.get("x2", 0))
+            s["y2"] = sy(s.get("y2", 0))
+        normalized.append(s)
+    return normalized
 
 
 def procesar_plano_con_gemini(
@@ -729,7 +833,40 @@ def procesar_plano_con_gemini(
 
         raw = _generate_with_model(model=model, image_pil=image_pil, prompt_dinamico=prompt_dinamico)
         parsed = _extract_json_array(raw)
-        vector_data = _validate_vector_data(parsed)
+        vector_data = _normalize_vector_data(_validate_vector_data(parsed))
+
+        # --- Retry automático si Gemini solo devuelvió cotas y ningún muro ---
+        muros_count = sum(1 for s in vector_data if s.get("tipo") in {"muro", "puerta", "ventana"})
+        if muros_count == 0 and image_pil is not None:
+            import logging
+            logging.getLogger(__name__).warning(
+                "[GeminiService] Retry: no se detectaron muros en la primera respuesta. "
+                f"Elementos recibidos: {[s.get('tipo') for s in vector_data]}"
+            )
+            try:
+                raw2 = _generate_with_model(
+                    model=model,
+                    image_pil=image_pil,
+                    prompt_dinamico=PROMPT_SOLO_GEOMETRIA,
+                )
+                parsed2 = _extract_json_array(raw2)
+                vector_data2 = _normalize_vector_data(_validate_vector_data(parsed2, allow_empty=True))
+                muros2 = sum(1 for s in vector_data2 if s.get("tipo") in {"muro", "puerta", "ventana"})
+                if muros2 > 0:
+                    # El retry encontró muros - combinamos: muros del retry + cotas/textos del original
+                    cotas_y_textos = [s for s in vector_data if s.get("tipo") not in {"muro", "puerta", "ventana"}]
+                    # Si el retry ya trajo textos, no los duplicamos.
+                    textos_retry = sum(1 for s in vector_data2 if s.get("tipo") == "texto")
+                    if textos_retry > 0:
+                        cotas_y_textos = [s for s in cotas_y_textos if s.get("tipo") != "texto"]
+                        
+                    vector_data = vector_data2 + cotas_y_textos
+                    raw = raw2
+            except Exception:
+                pass  # Si el retry falla, devolvemos lo original (las cotas al menos)
+
+        import sys
+        print(f"====== DEBUG GEMINI ======\nVECTOR_DATA: {vector_data}\n=======================", file=sys.stderr)
         return GeminiParseResult(vector_data=vector_data, raw_text=raw)
 
     except GeminiServiceError as e:

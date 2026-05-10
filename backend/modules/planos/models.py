@@ -17,6 +17,14 @@ class Plano(models.Model):
     opciones_generacion = models.JSONField(default=dict, blank=True)
     escala_metros_por_pixel = models.DecimalField(max_digits=12, decimal_places=6, default=0.01)
 
+    # Módulo 6: Diseño Generativo
+    es_alternativa = models.BooleanField(default=False)
+    plano_original = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True, related_name="alternativas")
+    costo_estimado = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    tiempo_estimado_dias = models.IntegerField(null=True, blank=True)
+    co2_estimado = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    puntuacion_sostenibilidad = models.IntegerField(null=True, blank=True)
+
     creado_en = models.DateTimeField(auto_now_add=True)
     actualizado_en = models.DateTimeField(auto_now=True)
 
