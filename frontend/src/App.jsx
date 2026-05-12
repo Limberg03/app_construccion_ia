@@ -7,6 +7,13 @@ import { EditorPage } from './pages/EditorPage'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { ToastViewport } from './ui/ToastViewport.jsx'
+import { AgenticChatbot } from './modules/agente/AgenticChatbot.jsx'
+
+function GlobalAgent() {
+  const { isAuthenticated } = useAuth()
+  if (!isAuthenticated) return null
+  return <AgenticChatbot />
+}
 
 function RequireAuth({ children }) {
   const { isAuthenticated } = useAuth()
@@ -26,6 +33,7 @@ export default function App() {
       <AuthProvider>
         <BrowserRouter>
           <ToastViewport />
+          <GlobalAgent />
           <Routes>
             <Route
               path="/login"

@@ -75,7 +75,7 @@ export function VisualizacionProyecto({ proyecto, onClose, onEnterPlano, embedde
 	}, [proyectoId])
 
 	const planoPrincipal = planos?.[0] ?? null
-	const tienePresupuesto = Array.isArray(items) && items.length > 0
+	const tienePresupuesto = presupuestos?.length > 0
 
 	const planoArchivoUrl = useMemo(() => {
 		const raw = planoPrincipal?.archivo
@@ -215,8 +215,8 @@ export function VisualizacionProyecto({ proyecto, onClose, onEnterPlano, embedde
 									Presupuesto
 								</div>
 								<div className="text-xs text-slate-600 dark:text-slate-300">
-									{latestPresupuestoId
-										? `Presupuesto #${latestPresupuestoId}`
+									{presupuestos?.[0]
+										? presupuestos[0].nombre
 										: '—'}
 								</div>
 							</div>
@@ -226,32 +226,36 @@ export function VisualizacionProyecto({ proyecto, onClose, onEnterPlano, embedde
 						</div>
 
 						<div className="mt-3">
-							<Table
-								columns={[
-									{
-										key: 'material',
-										header: 'Material',
-										render: (r) => String(r?.material ?? ''),
-									},
-									{
-										key: 'cantidad',
-										header: 'Cantidad',
-										render: (r) => String(r?.cantidad ?? ''),
-									},
-									{
-										key: 'precio_unitario',
-										header: 'P. Unit',
-										render: (r) => String(r?.precio_unitario ?? ''),
-									},
-									{
-										key: 'subtotal',
-										header: 'SubTotal',
-										render: (r) => String(r?.subtotal ?? ''),
-									},
-								]}
-								rows={items}
-								rowKey="id"
-							/>
+							{items.length > 0 ? (
+								<Table
+									columns={[
+										{
+											key: 'material',
+											header: 'Material',
+											render: (r) => String(r?.material ?? ''),
+										},
+										{
+											key: 'cantidad',
+											header: 'Cantidad',
+											render: (r) => String(r?.cantidad ?? ''),
+										},
+										{
+											key: 'precio_unitario',
+											header: 'P. Unit',
+											render: (r) => String(r?.precio_unitario ?? ''),
+										},
+										{
+											key: 'subtotal',
+											header: 'SubTotal',
+											render: (r) => String(r?.subtotal ?? ''),
+										},
+									]}
+									rows={items}
+									rowKey="id"
+								/>
+							) : (
+								<div className="text-sm text-slate-500">Este presupuesto no tiene ítems calculados.</div>
+							)}
 						</div>
 					</div>
 				) : null}
