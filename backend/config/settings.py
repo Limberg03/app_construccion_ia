@@ -144,7 +144,7 @@ _cors_env_list = [o.strip() for o in _cors_env.split(",") if o.strip()]
 
 _cors_defaults = [
     "https://construccion-ia.netlify.app",
-    "https://TU-SITIO-AQUI.netlify.app",
+    "https://visionary-kleicha-abb69e.netlify.app",
     "http://localhost:5173",
 ]
 
