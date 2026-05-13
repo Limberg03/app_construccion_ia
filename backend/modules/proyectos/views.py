@@ -149,4 +149,6 @@ class ProyectoViewSet(viewsets.ModelViewSet):
             return resp
 
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             return Response({"error": f"Error al generar PDF: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

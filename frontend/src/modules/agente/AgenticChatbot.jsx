@@ -192,7 +192,18 @@ export function AgenticChatbot({ context = 'global', projectId = null }) {
         content: '✅ **PDF descargado exitosamente.** Revisa tu carpeta de Descargas.'
       }])
     } catch (err) {
-      const msg = err?.response?.data?.error || err.message || 'Error desconocido'
+      let msg = err.message || 'Error desconocido'
+      if (err.response && err.response.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text()
+          const json = JSON.parse(text)
+          msg = json.error || msg
+        } catch (e) {
+          // Si no se puede parsear, conservamos el mensaje original
+        }
+      } else if (err.response?.data?.error) {
+        msg = err.response.data.error
+      }
       setMessages(prev => [...prev, { role: 'assistant', content: `❌ Error al descargar: ${msg}` }])
     } finally {
       setIsTyping(false)
