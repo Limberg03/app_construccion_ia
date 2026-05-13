@@ -344,23 +344,27 @@ def ejecutar_accion_agente(proyecto, accion_tipo: str, payload: dict) -> dict:
         pdf_buffer = crear_pdf_cronograma(proyecto, datos_json)
         
         fs = FileSystemStorage(location=os.path.join(settings.MEDIA_ROOT, 'cronogramas'))
-        filename = f"cronograma_{proyecto.id}.pdf"
+        
+        # Nombre de archivo profesional basado en el titulo del proyecto
+        import re
+        slug = re.sub(r'[^a-zA-Z0-9_]', '_', proyecto.titulo.strip())[:30]
+        filename = f"cronograma_{slug}.pdf"
+        download_name = f"Cronograma_de_Obra_{slug}.pdf"
+        
         if fs.exists(filename):
             fs.delete(filename)
         
         from django.core.files.base import ContentFile
         saved_filename = fs.save(filename, ContentFile(pdf_buffer.read()))
         
-        # Build URL manually since fs.url might be wrong if MEDIA_URL is standard
         backend_url = "http://127.0.0.1:8000"
         url = f"{backend_url}{settings.MEDIA_URL.rstrip('/')}/cronogramas/{saved_filename}"
         
-        # Retornamos el botón de descarga
         return {
             "role": "assistant",
             "content": f"✅ **PDF Generado Exitosamente:**\n\nHe creado el cronograma en formato PDF.\n\nHaz clic en el botón de abajo para descargarlo.",
             "actions": ["Descargar PDF"],
-            "data": {"url": url}
+            "data": {"url": url, "filename": download_name}
         }
         
     raise AgenteServiceError("Acción no reconocida.")

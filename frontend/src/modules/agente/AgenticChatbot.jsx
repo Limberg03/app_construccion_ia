@@ -165,9 +165,44 @@ export function AgenticChatbot({ context = 'global', projectId = null }) {
   }
 
   // ── Action buttons ──────────────────────────────────────────────────────────
+  // Descarga usando axios (misma base URL y JWT que el resto de la app)
+  const descargarCronogramaPDF = async () => {
+    if (!currentProjectId) return
+    setIsTyping(true)
+    setMessages(prev => [...prev, { role: 'user', content: 'Seleccionó la acción: Descargar PDF' }])
+    try {
+      const response = await http.get(
+        `/api/proyectos/${currentProjectId}/agente/cronograma-pdf/`,
+        { responseType: 'blob' }
+      )
+      const blob = new Blob([response.data], { type: 'application/pdf' })
+      const blobUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = blobUrl
+      // Leer el nombre del header Content-Disposition
+      const disposition = response.headers['content-disposition'] || ''
+      const match = disposition.match(/filename="?([^"]+)"?/)
+      a.download = match ? match[1] : 'Cronograma_de_Obra.pdf'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(blobUrl)
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: '✅ **PDF descargado exitosamente.** Revisa tu carpeta de Descargas.'
+      }])
+    } catch (err) {
+      const msg = err?.response?.data?.error || err.message || 'Error desconocido'
+      setMessages(prev => [...prev, { role: 'assistant', content: `❌ Error al descargar: ${msg}` }])
+    } finally {
+      setIsTyping(false)
+    }
+  }
+
   const handleAction = async (actionText, actionData) => {
-    if (actionText === 'Descargar PDF' && actionData && actionData.url) {
-      window.open(actionData.url, '_blank')
+    // Descargar PDF → usa endpoint dedicado siempre
+    if (actionText === 'Descargar PDF') {
+      descargarCronogramaPDF()
       return
     }
     if (!actionData || !actionData.accion_tipo) {
@@ -192,9 +227,6 @@ export function AgenticChatbot({ context = 'global', projectId = null }) {
         payload: actionData.payload || {}
       })
       const data = res.data
-      if (data.data && data.data.url) {
-        window.open(data.data.url, '_blank')
-      }
       setMessages((prev) => [
         ...prev,
         {

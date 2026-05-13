@@ -147,6 +147,9 @@ _cors_defaults = [
     "https://construccion-ia.netlify.app",
     "https://visionary-kleicha-abb69e.netlify.app",
     "http://localhost:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
 ]
 
 # Preserva orden y evita duplicados
