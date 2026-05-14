@@ -47,6 +47,14 @@ def _obtener_material(nombre: str, unidad: str) -> Material | None:
         )
         material = getattr(registro, "material", None)
 
+    # 4) Auto-crear si no existe en la base de datos
+    if not material:
+        material = Material.objects.create(
+            nombre=nombre.lower(),
+            unidad=unidad or "unidad",
+            precio_referencial=0
+        )
+
     return material
 
 
